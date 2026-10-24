@@ -1,0 +1,35 @@
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ea_workbench
+      POSTGRES_USER: ea_workbench
+      POSTGRES_PASSWORD: ${EA_POSTGRES_PASSWORD:?Set EA_POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ea_workbench -d ea_workbench"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  backend:
+    build: { context: ., dockerfile: Dockerfile.backend }
+    environment:
+      EA_ENVIRONMENT: ${EA_ENVIRONMENT:-development}
+      EA_SECRET_KEY: ${EA_SECRET_KEY:?Set EA_SECRET_KEY in .env}
+      EA_DATABASE_URL: postgresql+psycopg://ea_workbench:${EA_POSTGRES_PASSWORD}@database:5432/ea_workbench
+      EA_COOKIE_SECURE: ${EA_COOKIE_SECURE:-false}
+      EA_BOOTSTRAP_ADMIN_EMAIL: ${EA_BOOTSTRAP_ADMIN_EMAIL:-}
+      EA_BOOTSTRAP_ADMIN_PASSWORD: ${EA_BOOTSTRAP_ADMIN_PASSWORD:-}
+      EA_MISTRAL_API_KEY: ${EA_MISTRAL_API_KEY:-}
+      EA_MISTRAL_BASE_URL: ${EA_MISTRAL_BASE_URL:-https://api.mistral.ai/v1}
+      EA_MISTRAL_MODEL: ${EA_MISTRAL_MODEL:-mistral-small-latest}
+    depends_on:
+      database: { condition: service_healthy }
+    command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+  frontend:
+    build: { context: ., dockerfile: Dockerfile.frontend }
+    ports: ["8080:80"]
+    depends_on: [backend]
+volumes:
+  postgres_data:

@@ -1,0 +1,213 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "EA Workbench Dev",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\dev.ps1"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Backend Tests",
+			"type": "shell",
+			"command": "py.exe",
+			"args": [
+				"-m",
+				"pytest",
+				"C:\\dev\\earth\\backend\\tests",
+				"-q"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Frontend Build",
+			"type": "shell",
+			"command": "npm.cmd",
+			"args": [
+				"--prefix",
+				"C:\\dev\\earth\\frontend",
+				"run",
+				"build"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Database Migrations",
+			"type": "shell",
+			"command": "py.exe",
+			"args": [
+				"-m",
+				"alembic",
+				"-c",
+				"C:\\dev\\earth\\backend\\alembic.ini",
+				"upgrade",
+				"head"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Schema Check",
+			"type": "shell",
+			"command": "py.exe",
+			"args": [
+				"-m",
+				"alembic",
+				"-c",
+				"C:\\dev\\earth\\backend\\alembic.ini",
+				"check"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Seed Roles",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$env:PYTHONPATH='C:\\dev\\earth\\backend'; & 'C:\\dev\\earth\\.venv\\Scripts\\python.exe' -m app.seed"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Seed Roles Retry",
+			"type": "shell",
+			"command": "py.exe",
+			"args": [
+				"-c",
+				"import sys; sys.path.insert(0, r'C:\\dev\\earth\\backend'); from app.seed import main; main()"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Refresh Roles",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\dev\\earth\\dev.ps1",
+				"-SeedOnly"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Check Listeners",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-NetTCPConnection -State Listen -LocalPort 5173,8000 | Format-Table -AutoSize"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Inspect Listeners",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-NetTCPConnection -State Listen -LocalPort 5173,8000 | Select-Object LocalPort,OwningProcess | ConvertTo-Json -Compress"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Identify App Processes",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -in @(34644,11488) } | Select-Object ProcessId,Name,CommandLine | ConvertTo-Json -Compress"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Restart Current Servers",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Stop-Process -Id 34644,11488 -Force; & 'C:\\dev\\earth\\dev.ps1'"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Start Fresh",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"C:\\dev\\earth\\dev.ps1"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "EA Verify API Routes",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$ready=Invoke-RestMethod http://127.0.0.1:8000/health/ready; $spec=Invoke-RestMethod http://127.0.0.1:8000/api/v1/openapi.json; $names=$spec.paths.PSObject.Properties.Name; Write-Output \"ready=$($ready.status); adr=$($names -contains '/api/v1/decisions'); versions=$($names -contains '/api/v1/decisions/{decision_id}/versions'); assistant=$($names -contains '/api/v1/ai/ask'); conversations=$($names -contains '/api/v1/ai/conversations')\""
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "EA Verify Ports",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"Get-NetTCPConnection -State Listen -LocalPort 5173,8000 | Select-Object LocalPort,OwningProcess"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}
