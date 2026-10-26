@@ -1,0 +1,22 @@
+# Local development launcher; keep tracked in Git.
+dev.ps1
+
+# Secrets and local environment files.
+.env
+.env.*
+!.env.example
+
+# Git metadata and local Python environment/cache.
+.git
+.venv
+**/__pycache__/
+**/*.py[cod]
+
+# Frontend dependencies and build output.
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Local databases and development logs.
+**/*.db
+**/dev-*.log*
