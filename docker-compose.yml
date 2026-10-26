@@ -14,6 +14,7 @@ services:
       retries: 10
   backend:
     build: { context: ., dockerfile: Dockerfile.backend }
+    image: earth-backend:1.0.0
     environment:
       EA_ENVIRONMENT: ${EA_ENVIRONMENT:-development}
       EA_SECRET_KEY: ${EA_SECRET_KEY:?Set EA_SECRET_KEY in .env}
@@ -29,6 +30,7 @@ services:
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
   frontend:
     build: { context: ., dockerfile: Dockerfile.frontend }
+    image: earth-frontend:1.0.0
     ports: ["8080:80"]
     depends_on: [backend]
 volumes:
