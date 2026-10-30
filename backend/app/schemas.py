@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from typing import Generic, Literal, TypeVar
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class LoginRequest(BaseModel):
@@ -13,6 +14,16 @@ class UserCreate(BaseModel):
     email: EmailStr
     display_name: str = Field(min_length=1, max_length=160)
     role_id: int = Field(gt=0)
+    temporary_password: str = Field(min_length=12, max_length=256)
+
+
+class UserUpdate(BaseModel):
+    display_name: str | None = Field(default=None, min_length=1, max_length=160)
+    role_id: int | None = Field(default=None, gt=0)
+    is_active: bool | None = None
+
+
+class UserPasswordReset(BaseModel):
     temporary_password: str = Field(min_length=12, max_length=256)
 
 
@@ -71,9 +82,21 @@ class StudyCreate(BaseModel):
     scope: str = Field(default="", max_length=4000)
     out_of_scope: str = Field(default="", max_length=4000)
     architecture_domain: str = Field(default="", max_length=120)
+    architecture_domain_id: int | None = Field(default=None, gt=0)
     project_reference: str = Field(default="", max_length=120)
+    jira_jpd_url: str = Field(default="", max_length=1000)
+    confluence_url: str = Field(default="", max_length=1000)
     confidentiality: Literal["Public", "Internal", "Confidential", "Restricted"] = "Internal"
     target_review_date: date | None = None
+
+    @field_validator("jira_jpd_url", "confluence_url")
+    @classmethod
+    def validate_external_link(cls, value: str) -> str:
+        if value:
+            parsed = urlsplit(value)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password:
+                raise ValueError("External study links must be HTTP(S) URLs without embedded credentials")
+        return value
 
 
 class StudyUpdate(BaseModel):
@@ -84,10 +107,22 @@ class StudyUpdate(BaseModel):
     scope: str | None = Field(default=None, max_length=4000)
     out_of_scope: str | None = Field(default=None, max_length=4000)
     architecture_domain: str | None = Field(default=None, max_length=120)
+    architecture_domain_id: int | None = Field(default=None, gt=0)
     project_reference: str | None = Field(default=None, max_length=120)
+    jira_jpd_url: str | None = Field(default=None, max_length=1000)
+    confluence_url: str | None = Field(default=None, max_length=1000)
     confidentiality: Literal["Public", "Internal", "Confidential", "Restricted"] | None = None
     target_review_date: date | None = None
     status: Literal["Draft", "In Progress", "Ready for Review", "Under Review", "Approved", "Closed", "Archived"] | None = None
+
+    @field_validator("jira_jpd_url", "confluence_url")
+    @classmethod
+    def validate_external_link(cls, value: str | None) -> str | None:
+        if value:
+            parsed = urlsplit(value)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password:
+                raise ValueError("External study links must be HTTP(S) URLs without embedded credentials")
+        return value
 
 
 class StudyOut(BaseModel):
@@ -100,14 +135,222 @@ class StudyOut(BaseModel):
     scope: str
     out_of_scope: str
     architecture_domain: str
+    architecture_domain_id: int | None
     project_reference: str
+    jira_jpd_url: str
+    confluence_url: str
     lead_architect_id: int
     status: str
     confidentiality: str
     target_review_date: date | None
     row_version: int
     created_at: datetime
+    updated_at: datetime | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArchitectureDomainCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+
+
+class ArchitectureDomainUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    is_active: bool | None = None
+
+
+class ArchitectureDomainOut(BaseModel):
+    id: int
+    name: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskObjectInput(BaseModel):
+    object_type: str = Field(min_length=1, max_length=80)
+    object_ref: str = Field(default="", max_length=240)
+
+
+class RiskObjectOut(RiskObjectInput):
+    risk_object_id: str
+    risk_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskSourceInput(BaseModel):
+    source_type: str = Field(min_length=1, max_length=80)
+    source_ref: str = Field(default="", max_length=240)
+
+
+class RiskSourceOut(RiskSourceInput):
+    risk_source_id: str
+    risk_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskScopeInput(BaseModel):
+    scope_type: str = Field(min_length=1, max_length=80)
+    scope_ref: str = Field(default="", max_length=240)
+
+
+class RiskScopeOut(RiskScopeInput):
+    risk_scope_id: str
+    risk_id: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskMitigationInput(BaseModel):
+    title: str = Field(default="", max_length=240)
+    description: str = Field(default="", max_length=2000)
+    residual_probability: int | None = Field(default=None, ge=1, le=4)
+    residual_impact: int | None = Field(default=None, ge=1, le=4)
+    treatment_strategy: Literal["Avoid", "Reduce", "Transfer", "Accept"] = "Reduce"
+    control_effectiveness: Literal["Unknown", "Low", "Moderate", "High"] = "Unknown"
+
+    @model_validator(mode="after")
+    def validate_residual_pair(self):
+        if (self.residual_probability is None) != (self.residual_impact is None):
+            raise ValueError("Residual probability and impact must be provided together")
+        return self
+
+
+class RiskMitigationUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=240)
+    description: str | None = Field(default=None, max_length=2000)
+    residual_probability: int | None = Field(default=None, ge=1, le=4)
+    residual_impact: int | None = Field(default=None, ge=1, le=4)
+    treatment_strategy: Literal["Avoid", "Reduce", "Transfer", "Accept"] | None = None
+    control_effectiveness: Literal["Unknown", "Low", "Moderate", "High"] | None = None
+
+    @model_validator(mode="after")
+    def validate_residual_pair(self):
+        if (self.residual_probability is None) != (self.residual_impact is None):
+            raise ValueError("Residual probability and impact must be provided together")
+        return self
+
+
+class RiskMitigationAttachmentOut(BaseModel):
+    id: str
+    file_name: str
+    content_type: str
+    file_size: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskMitigationReviewOut(BaseModel):
+    id: str
+    reviewer_id: int
+    reviewer_name: str
+    decision: Literal["Approved", "Rejected"]
+    comment: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskMitigationOut(BaseModel):
+    mitigation_id: str
+    risk_id: int
+    risk_identifier: str
+    risk_title: str
+    title: str
+    description: str
+    residual_probability: int | None
+    residual_impact: int | None
+    residual_score: int | None
+    treatment_strategy: str
+    control_effectiveness: str
+    status: Literal["Draft", "Submitted", "Approved", "Rejected"]
+    submitted_at: datetime | None
+    validated_at: datetime | None
+    validated_by_id: int | None
+    validation_comment: str
     updated_at: datetime
+    attachments: list[RiskMitigationAttachmentOut]
+    reviews: list[RiskMitigationReviewOut]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskMitigationReviewInput(BaseModel):
+    decision: Literal["Approved", "Rejected"]
+    comment: str = Field(default="", max_length=2000)
+
+
+class RiskConfigurationOut(BaseModel):
+    mitigation_validation_stale_days: int = Field(ge=1, le=3650)
+
+
+class RiskConfigurationUpdate(BaseModel):
+    mitigation_validation_stale_days: int = Field(ge=1, le=3650)
+
+
+class RiskTaxonomyFamilyUpdate(BaseModel):
+    name_en: str = Field(min_length=1, max_length=160)
+    name_fr: str = Field(min_length=1, max_length=160)
+
+
+class RiskTaxonomyTypeUpdate(BaseModel):
+    label_en: str = Field(min_length=1, max_length=240)
+    label_fr: str = Field(min_length=1, max_length=240)
+
+
+class RiskReferenceValueCreate(BaseModel):
+    category: Literal["object_type", "source_type", "scope_type"]
+    label_en: str = Field(min_length=1, max_length=160)
+    label_fr: str = Field(min_length=1, max_length=160)
+
+
+class RiskReferenceValueUpdate(BaseModel):
+    label_en: str | None = Field(default=None, min_length=1, max_length=160)
+    label_fr: str | None = Field(default=None, min_length=1, max_length=160)
+    is_active: bool | None = None
+
+
+class RiskReferenceValueOut(BaseModel):
+    id: str
+    category: str
+    code: str
+    label_en: str
+    label_fr: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ArdoqSettingsUpdate(BaseModel):
+    root_workspace_id: str = Field(min_length=1, max_length=100)
+    component_type_ids: dict[str, str]
+
+
+class ArdoqSettingsOut(BaseModel):
+    api_host: str
+    org_label: str
+    token_configured: bool
+    root_workspace_id: str
+    component_type_ids: dict[str, str]
+
+
+class ArdoqComponentOut(BaseModel):
+    code: str
+    name: str
+    component_type: str
+    type_id: str
+
+
+class RiskAssessmentOut(BaseModel):
+    assessment_id: str
+    risk_id: int
+    assessment_type: Literal["Inherent", "Residual"]
+    probability: int
+    impact: int
+    criticality: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -120,12 +363,18 @@ class RiskCreate(BaseModel):
     consequences: str = Field(default="", max_length=2000)
     category: str = Field(default="", max_length=120)
     family: str = Field(default="", max_length=120)
+    family_id: str | None = Field(default=None, pattern=r"^F0[1-8]$")
+    subfamily_id: str | None = Field(default=None, pattern=r"^F0[1-8]\.\d{2}$")
+    risk_definition_id: str | None = Field(default=None, max_length=12)
+    objects: list[RiskObjectInput] = Field(default_factory=list)
+    sources: list[RiskSourceInput] = Field(default_factory=list)
+    scopes: list[RiskScopeInput] = Field(default_factory=list)
+    mitigations: list[RiskMitigationInput] = Field(default_factory=list)
     architecture_domain: str = Field(default="", max_length=120)
     probability: int = Field(ge=1, le=4)
     impact: int = Field(ge=1, le=4)
     residual_probability: int | None = Field(default=None, ge=1, le=4)
     residual_impact: int | None = Field(default=None, ge=1, le=4)
-    existing_controls: str = Field(default="", max_length=2000)
     control_effectiveness: Literal["Unknown", "Low", "Moderate", "High"] = "Unknown"
     treatment_strategy: Literal["Avoid", "Reduce", "Transfer", "Accept"] = "Reduce"
     study_id: int | None = Field(default=None, gt=0)
@@ -147,18 +396,23 @@ class RiskUpdate(BaseModel):
     consequences: str | None = Field(default=None, max_length=2000)
     category: str | None = Field(default=None, max_length=120)
     family: str | None = Field(default=None, max_length=120)
+    family_id: str | None = Field(default=None, pattern=r"^F0[1-8]$")
+    subfamily_id: str | None = Field(default=None, pattern=r"^F0[1-8]\.\d{2}$")
+    risk_definition_id: str | None = Field(default=None, max_length=12)
+    objects: list[RiskObjectInput] | None = None
+    sources: list[RiskSourceInput] | None = None
+    scopes: list[RiskScopeInput] | None = None
     architecture_domain: str | None = Field(default=None, max_length=120)
     probability: int | None = Field(default=None, ge=1, le=4)
     impact: int | None = Field(default=None, ge=1, le=4)
     residual_probability: int | None = Field(default=None, ge=1, le=4)
     residual_impact: int | None = Field(default=None, ge=1, le=4)
-    existing_controls: str | None = Field(default=None, max_length=2000)
     control_effectiveness: Literal["Unknown", "Low", "Moderate", "High"] | None = None
     treatment_strategy: Literal["Avoid", "Reduce", "Transfer", "Accept"] | None = None
     study_id: int | None = Field(default=None, gt=0)
     detection_date: date | None = None
     target_resolution_date: date | None = None
-    status: Literal["Identified", "Assessed", "Treatment Defined", "Mitigation in Progress", "Monitoring", "Accepted", "Closed"] | None = None
+    status: Literal["Open", "In Progress", "Closed", "Archived", "Reopened"] | None = None
 
 
 class RiskOut(BaseModel):
@@ -171,6 +425,18 @@ class RiskOut(BaseModel):
     consequences: str
     category: str
     family: str
+    family_id: str | None
+    family_label: str | None
+    family_label_en: str | None
+    subfamily_id: str | None
+    subfamily_label: str | None
+    subfamily_label_en: str | None
+    risk_definition_id: str | None
+    objects: list[RiskObjectOut]
+    sources: list[RiskSourceOut]
+    scopes: list[RiskScopeOut]
+    assessments: list[RiskAssessmentOut]
+    mitigations: list[RiskMitigationOut]
     architecture_domain: str
     probability: int
     impact: int
@@ -179,7 +445,6 @@ class RiskOut(BaseModel):
     residual_impact: int | None
     residual_score: int | None
     criticality: str
-    existing_controls: str
     control_effectiveness: str
     status: str
     treatment_strategy: str
@@ -192,6 +457,36 @@ class RiskOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class RiskHelpOut(BaseModel):
+    id: str
+    risk_code: str
+    risk_number: int
+    subfamily_id: str
+    title_en: str
+    title_fr: str
+    description_en: str
+    description_fr: str
+    causes: list[str]
+    causes_fr: list[str]
+    impacts: list[str]
+    impacts_fr: list[str]
+    data_quality_notes: list[str]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RiskHelpUpdate(BaseModel):
+    title_en: str = Field(min_length=1, max_length=240)
+    title_fr: str = Field(min_length=1, max_length=240)
+    description_en: str = Field(min_length=1, max_length=4000)
+    description_fr: str = Field(default="", max_length=4000)
+    causes: list[str]
+    causes_fr: list[str] = Field(default_factory=list)
+    impacts: list[str]
+    impacts_fr: list[str] = Field(default_factory=list)
+    data_quality_notes: list[str]
 
 
 T = TypeVar("T")

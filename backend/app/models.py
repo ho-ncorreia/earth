@@ -95,7 +95,10 @@ class ArchitectureStudy(Base):
     scope: Mapped[str] = mapped_column(String(4000), default="")
     out_of_scope: Mapped[str] = mapped_column(String(4000), default="")
     architecture_domain: Mapped[str] = mapped_column(String(120), default="")
+    architecture_domain_id: Mapped[int | None] = mapped_column(ForeignKey("architecture_domains.id", ondelete="SET NULL"), nullable=True, index=True)
     project_reference: Mapped[str] = mapped_column(String(120), default="")
+    jira_jpd_url: Mapped[str] = mapped_column(String(1000), default="")
+    confluence_url: Mapped[str] = mapped_column(String(1000), default="")
     lead_architect_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
     status: Mapped[str] = mapped_column(String(40), default="Draft", index=True)
     confidentiality: Mapped[str] = mapped_column(String(40), default="Internal")
@@ -104,8 +107,19 @@ class ArchitectureStudy(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     lead_architect: Mapped[User] = relationship(lazy="joined")
+    domain: Mapped["ArchitectureDomain | None"] = relationship(lazy="joined")
 
     __mapper_args__ = {"version_id_col": row_version}
+
+
+class ArchitectureDomain(Base):
+    __tablename__ = "architecture_domains"
+    __table_args__ = (UniqueConstraint("name", name="uq_architecture_domains_name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class ArchitectureRisk(Base):
@@ -121,14 +135,16 @@ class ArchitectureRisk(Base):
     consequences: Mapped[str] = mapped_column(String(2000), default="")
     category: Mapped[str] = mapped_column(String(120), default="")
     family: Mapped[str] = mapped_column(String(120), default="")
+    family_id: Mapped[str | None] = mapped_column(ForeignKey("risk_taxonomy_families.id", ondelete="SET NULL"), nullable=True)
+    subfamily_id: Mapped[str | None] = mapped_column(ForeignKey("risk_taxonomy_types.id", ondelete="SET NULL"), nullable=True)
+    risk_definition_id: Mapped[str | None] = mapped_column(ForeignKey("risk_help_definitions.id", ondelete="SET NULL"), nullable=True)
     architecture_domain: Mapped[str] = mapped_column(String(120), default="")
     probability: Mapped[int] = mapped_column(Integer)
     impact: Mapped[int] = mapped_column(Integer)
     residual_probability: Mapped[int | None] = mapped_column(Integer, nullable=True)
     residual_impact: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    existing_controls: Mapped[str] = mapped_column(String(2000), default="")
     control_effectiveness: Mapped[str] = mapped_column(String(40), default="Unknown")
-    status: Mapped[str] = mapped_column(String(40), default="Identified", index=True)
+    status: Mapped[str] = mapped_column(String(40), default="Open", index=True)
     treatment_strategy: Mapped[str] = mapped_column(String(40), default="Reduce")
     owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     study_id: Mapped[int | None] = mapped_column(ForeignKey("architecture_studies.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -138,6 +154,14 @@ class ArchitectureRisk(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     owner: Mapped[User | None] = relationship(foreign_keys=[owner_id], lazy="joined")
+    taxonomy_family: Mapped["RiskTaxonomyFamily | None"] = relationship(lazy="joined")
+    taxonomy_type: Mapped["RiskTaxonomyType | None"] = relationship(lazy="joined")
+    help_definition: Mapped["RiskHelpDefinition | None"] = relationship(lazy="joined")
+    objects: Mapped[list["RiskObject"]] = relationship(back_populates="risk", cascade="all, delete-orphan", lazy="selectin")
+    sources: Mapped[list["RiskSource"]] = relationship(back_populates="risk", cascade="all, delete-orphan", lazy="selectin")
+    scopes: Mapped[list["RiskScope"]] = relationship(back_populates="risk", cascade="all, delete-orphan", lazy="selectin")
+    assessments: Mapped[list["RiskAssessment"]] = relationship(back_populates="risk", cascade="all, delete-orphan", lazy="selectin")
+    mitigations: Mapped[list["RiskMitigation"]] = relationship(back_populates="risk", cascade="all, delete-orphan", lazy="selectin")
 
     __mapper_args__ = {"version_id_col": row_version}
 
@@ -154,6 +178,195 @@ class ArchitectureRisk(Base):
     @property
     def criticality(self) -> str:
         return risk_criticality(self.inherent_score)
+
+    @property
+    def family_label(self) -> str | None:
+        return self.taxonomy_family.name_fr if self.taxonomy_family else None
+
+    @property
+    def family_label_en(self) -> str | None:
+        return self.taxonomy_family.name_en if self.taxonomy_family else None
+
+    @property
+    def subfamily_label(self) -> str | None:
+        return self.taxonomy_type.label_fr if self.taxonomy_type else None
+
+    @property
+    def subfamily_label_en(self) -> str | None:
+        return self.taxonomy_type.label_en if self.taxonomy_type else None
+
+
+class RiskTaxonomyFamily(Base):
+    __tablename__ = "risk_taxonomy_families"
+
+    id: Mapped[str] = mapped_column(String(3), primary_key=True)
+    name_en: Mapped[str] = mapped_column(String(160))
+    name_fr: Mapped[str] = mapped_column(String(160))
+    types: Mapped[list["RiskTaxonomyType"]] = relationship(back_populates="family", cascade="all, delete-orphan", order_by="RiskTaxonomyType.id", lazy="selectin")
+
+
+class RiskTaxonomyType(Base):
+    __tablename__ = "risk_taxonomy_types"
+
+    id: Mapped[str] = mapped_column(String(6), primary_key=True)
+    family_id: Mapped[str] = mapped_column(ForeignKey("risk_taxonomy_families.id", ondelete="CASCADE"), index=True)
+    label_en: Mapped[str] = mapped_column(String(240))
+    label_fr: Mapped[str] = mapped_column(String(240))
+    family: Mapped[RiskTaxonomyFamily] = relationship(back_populates="types")
+
+
+class RiskHelpDefinition(Base):
+    __tablename__ = "risk_help_definitions"
+
+    id: Mapped[str] = mapped_column(String(12), primary_key=True)
+    risk_code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
+    risk_number: Mapped[int] = mapped_column(Integer, unique=True)
+    subfamily_id: Mapped[str] = mapped_column(ForeignKey("risk_taxonomy_types.id", ondelete="RESTRICT"), index=True)
+    title_en: Mapped[str] = mapped_column(String(240))
+    title_fr: Mapped[str] = mapped_column(String(240))
+    description_en: Mapped[str] = mapped_column(String(4000))
+    description_fr: Mapped[str] = mapped_column(String(4000), default="")
+    causes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    causes_fr: Mapped[list[str]] = mapped_column(JSON, default=list)
+    impacts: Mapped[list[str]] = mapped_column(JSON, default=list)
+    impacts_fr: Mapped[list[str]] = mapped_column(JSON, default=list)
+    data_quality_notes: Mapped[list[str]] = mapped_column(JSON, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class RiskObject(Base):
+    __tablename__ = "risk_objects"
+
+    risk_object_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    risk_id: Mapped[int] = mapped_column(ForeignKey("architecture_risks.id", ondelete="CASCADE"), index=True)
+    object_type: Mapped[str] = mapped_column(String(80))
+    object_ref: Mapped[str] = mapped_column(String(240), default="")
+    risk: Mapped[ArchitectureRisk] = relationship(back_populates="objects")
+
+
+class RiskSource(Base):
+    __tablename__ = "risk_sources"
+
+    risk_source_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    risk_id: Mapped[int] = mapped_column(ForeignKey("architecture_risks.id", ondelete="CASCADE"), index=True)
+    source_type: Mapped[str] = mapped_column(String(80))
+    source_ref: Mapped[str] = mapped_column(String(240), default="")
+    risk: Mapped[ArchitectureRisk] = relationship(back_populates="sources")
+
+
+class RiskScope(Base):
+    __tablename__ = "risk_scopes"
+
+    risk_scope_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    risk_id: Mapped[int] = mapped_column(ForeignKey("architecture_risks.id", ondelete="CASCADE"), index=True)
+    scope_type: Mapped[str] = mapped_column(String(80))
+    scope_ref: Mapped[str] = mapped_column(String(240), default="")
+    risk: Mapped[ArchitectureRisk] = relationship(back_populates="scopes")
+
+
+class RiskAssessment(Base):
+    __tablename__ = "risk_assessments"
+    __table_args__ = (UniqueConstraint("risk_id", "assessment_type", name="uq_risk_assessments_type"),)
+
+    assessment_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    risk_id: Mapped[int] = mapped_column(ForeignKey("architecture_risks.id", ondelete="CASCADE"), index=True)
+    assessment_type: Mapped[str] = mapped_column(String(20))
+    probability: Mapped[int] = mapped_column(Integer)
+    impact: Mapped[int] = mapped_column(Integer)
+    risk: Mapped[ArchitectureRisk] = relationship(back_populates="assessments")
+
+    @property
+    def criticality(self) -> int:
+        return self.probability * self.impact
+
+
+class RiskMitigation(Base):
+    __tablename__ = "risk_mitigations"
+
+    mitigation_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    risk_id: Mapped[int] = mapped_column(ForeignKey("architecture_risks.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(240), default="")
+    description: Mapped[str] = mapped_column(String(2000))
+    residual_probability: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    residual_impact: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    treatment_strategy: Mapped[str] = mapped_column(String(40), default="Reduce")
+    control_effectiveness: Mapped[str] = mapped_column(String(40), default="Unknown")
+    status: Mapped[str] = mapped_column(String(40), default="Draft", index=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    validated_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    validation_comment: Mapped[str] = mapped_column(String(2000), default="")
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=True)
+    risk: Mapped[ArchitectureRisk] = relationship(back_populates="mitigations")
+    validated_by: Mapped[User | None] = relationship(foreign_keys=[validated_by_id], lazy="joined")
+    attachments: Mapped[list["RiskMitigationAttachment"]] = relationship(back_populates="mitigation", cascade="all, delete-orphan", lazy="selectin")
+    reviews: Mapped[list["RiskMitigationReview"]] = relationship(back_populates="mitigation", cascade="all, delete-orphan", order_by="RiskMitigationReview.created_at", lazy="selectin")
+
+    @property
+    def residual_score(self) -> int | None:
+        if self.residual_probability is None or self.residual_impact is None:
+            return None
+        return self.residual_probability * self.residual_impact
+
+    @property
+    def risk_identifier(self) -> str:
+        return self.risk.identifier
+
+    @property
+    def risk_title(self) -> str:
+        return self.risk.title
+
+
+class RiskMitigationAttachment(Base):
+    __tablename__ = "risk_mitigation_attachments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    mitigation_id: Mapped[str] = mapped_column(ForeignKey("risk_mitigations.mitigation_id", ondelete="CASCADE"), index=True)
+    file_name: Mapped[str] = mapped_column(String(255))
+    storage_name: Mapped[str] = mapped_column(String(80), unique=True)
+    content_type: Mapped[str] = mapped_column(String(120))
+    file_size: Mapped[int] = mapped_column(Integer)
+    uploaded_by_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    mitigation: Mapped[RiskMitigation] = relationship(back_populates="attachments")
+    uploaded_by: Mapped[User] = relationship(foreign_keys=[uploaded_by_id], lazy="joined")
+
+
+class RiskMitigationReview(Base):
+    __tablename__ = "risk_mitigation_reviews"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    mitigation_id: Mapped[str] = mapped_column(ForeignKey("risk_mitigations.mitigation_id", ondelete="CASCADE"), index=True)
+    reviewer_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    decision: Mapped[str] = mapped_column(String(20))
+    comment: Mapped[str] = mapped_column(String(2000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    mitigation: Mapped[RiskMitigation] = relationship(back_populates="reviews")
+    reviewer: Mapped[User] = relationship(lazy="joined")
+
+    @property
+    def reviewer_name(self) -> str:
+        return self.reviewer.display_name
+
+
+class RiskConfiguration(Base):
+    __tablename__ = "risk_configuration"
+
+    key: Mapped[str] = mapped_column(String(80), primary_key=True)
+    value: Mapped[str] = mapped_column(String(240))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+
+
+class RiskReferenceValue(Base):
+    __tablename__ = "risk_reference_values"
+    __table_args__ = (UniqueConstraint("category", "code", name="uq_risk_reference_values_category_code"),)
+
+    id: Mapped[str] = mapped_column(String(60), primary_key=True)
+    category: Mapped[str] = mapped_column(String(40), index=True)
+    code: Mapped[str] = mapped_column(String(100))
+    label_en: Mapped[str] = mapped_column(String(160))
+    label_fr: Mapped[str] = mapped_column(String(160))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
 
 def risk_criticality(score: int) -> str:

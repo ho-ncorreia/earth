@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/api.ts","./src/main.tsx","./src/i18n/en.ts","./src/i18n/fr.ts"],"version":"5.7.3"}
+{"root":["./src/app.tsx","./src/architecturesettingspage.tsx","./src/mitigationspage.tsx","./src/riskdetailpage.tsx","./src/riskmonitoringdashboard.tsx","./src/riskregisterconfiguredpage.tsx","./src/riskregisterpage.tsx","./src/riskscoringfields.tsx","./src/api.ts","./src/main.tsx","./src/i18n/en.ts","./src/i18n/fr.ts"],"version":"5.7.3"}

@@ -34,7 +34,7 @@ def ranked_sources(db: Session, user: User, question: str, limit: int = 5) -> li
             study = db.get(ArchitectureStudy, risk.study_id) if risk.study_id else None
             if study and study.confidentiality == "Restricted" and study.lead_architect_id != user.id and user.role.name != "Administrator":
                 continue
-            excerpt = "\n".join((risk.title, risk.description, risk.cause, risk.risk_event, risk.consequences, risk.existing_controls))
+            excerpt = "\n".join((risk.title, risk.description, risk.cause, risk.risk_event, risk.consequences))
             candidates.append({"type": "risk", "id": risk.id, "title": f"{risk.identifier} · {risk.title}", "excerpt": excerpt[:1000]})
     for source in candidates:
         source_terms = terms(source["title"] + " " + source["excerpt"])

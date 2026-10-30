@@ -9,11 +9,11 @@ from app.core.security import hash_password
 from app.models import Permission, Role, User
 
 ROLE_PERMISSIONS = {
-    "Administrator": ["users.read", "users.write", "audit.read", "admin.configure", "studies.read", "studies.write", "risks.read", "risks.write", "decisions.read", "decisions.write", "decisions.review", "assistant.use"],
-    "Enterprise Architect": ["architecture.read", "architecture.write", "audit.read", "studies.read", "studies.write", "risks.read", "risks.write", "decisions.read", "decisions.write", "assistant.use"],
-    "Solution Architect": ["architecture.read", "architecture.contribute", "studies.read", "risks.read", "risks.write", "decisions.read", "decisions.write", "assistant.use"],
-    "Technical Architect": ["architecture.read", "architecture.contribute", "technical.review", "studies.read", "risks.read", "risks.write", "decisions.read", "decisions.write", "decisions.review", "assistant.use"],
-    "Reviewer / ARB Member": ["architecture.read", "architecture.review", "studies.read", "risks.read", "decisions.read", "decisions.review", "assistant.use"],
+    "Administrator": ["users.read", "users.write", "audit.read", "admin.configure", "studies.read", "studies.write", "studies.approve", "risks.read", "risks.write", "risks.approve", "decisions.read", "decisions.write", "decisions.review", "assistant.use"],
+    "Enterprise Architect": ["architecture.read", "architecture.write", "audit.read", "studies.read", "studies.write", "studies.approve", "risks.read", "risks.write", "risks.approve", "decisions.read", "decisions.write", "assistant.use"],
+    "Solution Architect": ["architecture.read", "architecture.contribute", "studies.read", "studies.write", "risks.read", "risks.write", "decisions.read", "decisions.write", "assistant.use"],
+    "Technical Architect": ["architecture.read", "architecture.contribute", "technical.review", "studies.read", "studies.write", "risks.read", "risks.write", "risks.approve", "decisions.read", "decisions.write", "decisions.review", "assistant.use"],
+    "Reviewer / ARB Member": ["architecture.read", "architecture.review", "studies.read", "studies.approve", "risks.read", "risks.approve", "decisions.read", "decisions.review", "assistant.use"],
     "Read-only User": ["architecture.read", "studies.read", "risks.read", "decisions.read", "assistant.use"],
 }
 

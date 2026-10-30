@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.audit.routes import router as audit_router
+from app.admin.routes import router as admin_router
 from app.ai_assistant.routes import router as ai_router
 from app.core.config import settings
 from app.core.database import engine
@@ -21,6 +22,7 @@ if origins:
 app.include_router(identity_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
+app.include_router(admin_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(studies_router, prefix="/api/v1")
 app.include_router(risks_router, prefix="/api/v1")

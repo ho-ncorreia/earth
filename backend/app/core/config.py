@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     mistral_api_key: str = ""
     mistral_base_url: str = "https://api.mistral.ai/v1"
     mistral_model: str = "mistral-small-latest"
+    attachment_storage_path: str = "backend/uploads/mitigations"
+    ardoq_api_token: str = ""
+    ardoq_api_host: str = "https://app.ardoq.com"
+    ardoq_org_label: str = ""
 
     @model_validator(mode="after")
     def validate_production_security(self) -> "Settings":

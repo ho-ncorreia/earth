@@ -25,6 +25,12 @@ services:
       EA_MISTRAL_API_KEY: ${EA_MISTRAL_API_KEY:-}
       EA_MISTRAL_BASE_URL: ${EA_MISTRAL_BASE_URL:-https://api.mistral.ai/v1}
       EA_MISTRAL_MODEL: ${EA_MISTRAL_MODEL:-mistral-small-latest}
+      EA_ARDOQ_API_TOKEN: ${EA_ARDOQ_API_TOKEN:-}
+      EA_ARDOQ_API_HOST: ${EA_ARDOQ_API_HOST:-https://app.ardoq.com}
+      EA_ARDOQ_ORG_LABEL: ${EA_ARDOQ_ORG_LABEL:-}
+      EA_ATTACHMENT_STORAGE_PATH: /app/uploads/mitigations
+    volumes:
+      - mitigation_files:/app/uploads/mitigations
     depends_on:
       database: { condition: service_healthy }
     command: sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"
@@ -35,3 +41,4 @@ services:
     depends_on: [backend]
 volumes:
   postgres_data:
+  mitigation_files:

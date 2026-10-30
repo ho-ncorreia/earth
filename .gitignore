@@ -5,6 +5,7 @@ __pycache__/
 *.db
 backend/ea_workbench.db
 backend/dev-*.log*
+backend/uploads/
 frontend/dev-*.log*
 backend/.pytest_cache/
 frontend/node_modules/

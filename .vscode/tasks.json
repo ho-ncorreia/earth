@@ -208,6 +208,328 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "test"
+		},
+		{
+			"label": "Temporary restart EA API",
+			"type": "shell",
+			"command": "powershell.exe",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-Command",
+				"Stop-Process -Id 33876 -Force; $python='C:\\dev\\earth\\.venv\\Scripts\\python.exe'; Start-Process -FilePath $python -ArgumentList @('-m','uvicorn','app.main:app','--app-dir','backend','--port','8000') -WorkingDirectory 'C:\\dev\\earth' -RedirectStandardOutput 'C:\\dev\\earth\\backend\\dev-api.log' -RedirectStandardError 'C:\\dev\\earth\\backend\\dev-api.log.err'"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop EA API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"33876",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start EA API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop updated EA API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"28788",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start updated EA API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop hardened EA API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"6192",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start hardened EA API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop final EA API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"32684",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start final EA API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop dashboard API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"34324",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start dashboard API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop risk monitor API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"36812",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start risk monitor API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop reference settings API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"16548",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start reference settings API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop configured-reference API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"37864",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start configured-reference API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop admin tools API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"22824",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start admin tools API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop schema explorer API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"4952",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start schema explorer API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
+		},
+		{
+			"label": "Temporary stop schema cardinality API",
+			"type": "shell",
+			"command": "taskkill.exe",
+			"args": [
+				"/PID",
+				"37292",
+				"/F"
+			],
+			"isBackground": false,
+			"group": "build"
+		},
+		{
+			"label": "Temporary start schema cardinality API",
+			"type": "shell",
+			"command": "C:\\dev\\earth\\.venv\\Scripts\\python.exe",
+			"args": [
+				"-m",
+				"uvicorn",
+				"app.main:app",
+				"--app-dir",
+				"backend",
+				"--port",
+				"8000"
+			],
+			"isBackground": true,
+			"group": "build"
 		}
 	]
 }
